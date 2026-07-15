@@ -1,0 +1,12 @@
+{:itonami.blueprint/id "cloud-itonami-0149"
+ :itonami.blueprint/name "Other-Livestock Farm Operations Coordination"
+ :itonami.blueprint/isic-rev5 "0149"
+ :itonami.blueprint/domain :agriculture/other-livestock-raising
+ :itonami.blueprint/license "AGPL-3.0-or-later"
+ :itonami.blueprint/social-impact [:animal-welfare :food-security :rural-employment]
+ :itonami.blueprint/governor :other-livestock-farm-operations-governor
+ :itonami.blueprint/robotics true
+ :itonami.blueprint/required-technologies [:robotics :identity :forms :audit-ledger]
+ :itonami.blueprint/optional-technologies [:telemetry :optimization :dmn :bpmn]
+ :itonami.blueprint/status :public-oss
+ :itonami.blueprint/maturity :implemented}

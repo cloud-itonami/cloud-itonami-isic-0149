@@ -1,0 +1,55 @@
+(ns otherlivestockops.sim
+  "Simple simulation/demo runner for the Other-Livestock Farm Operations
+  Coordinator actor. Used to validate that the actor flow compiles and
+  basic proposal flow works. Mirrors `swineops.sim`
+  (cloud-itonami-isic-0145)."
+  (:require [otherlivestockops.operation :as operation]
+            [otherlivestockops.store :as store]))
+
+(defn demo
+  "Run a simple demo scenario: register a facility (an apiary, this
+  actor's chosen concrete illustrative husbandry line), propose a
+  husbandry-record log, and check the disposition flow."
+  []
+  (let [;; Create store with a registered facility
+        st (store/mem-store
+            {:initial-facilities
+             {"apiary-001"
+              {:id "apiary-001"
+               :name "Sunrise Apiary"
+               :location "Yard 2, Row 5"
+               :husbandry-line "apiculture"}}})
+
+        ;; Build actor
+        actor (operation/build st)
+
+        ;; Create a request to log a husbandry record
+        request {:op :log-husbandry-record
+                 :facility-id "apiary-001"
+                 :count 24
+                 :health-status "healthy"}
+
+        ;; Context with phase 0 (simulation)
+        context {:actor-id "other-livestock-ops-01"
+                 :role :farm-operator
+                 :phase :phase-0}]
+
+    (println "=== Other-Livestock Farm Operations Coordinator Demo ===")
+    (println "Demo facility: apiary-001 (Yard 2, Row 5)")
+    (println "Request: log-husbandry-record")
+    (println "Phase: phase-0 (simulation)")
+    (println "Expected: escalate (phase-0 forces human review of all commits)")
+    (println)
+    (let [result (actor request context)]
+      (println "Result disposition:" (:disposition result))
+      result)))
+
+(defn -main
+  "clojure -M:run entrypoint."
+  [& _args]
+  (demo))
+
+(comment
+  ;; In a real REPL:
+  (demo)
+)
