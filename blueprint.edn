@@ -1,4 +1,4 @@
-{:itonami.blueprint/id "cloud-itonami-0149"
+{:itonami.blueprint/id "cloud-itonami-isic-0149"
  :itonami.blueprint/name "Other-Livestock Farm Operations Coordination"
  :itonami.blueprint/isic-rev5 "0149"
  :itonami.blueprint/domain :agriculture/other-livestock-raising
@@ -9,4 +9,4 @@
  :itonami.blueprint/required-technologies [:robotics :identity :forms :audit-ledger]
  :itonami.blueprint/optional-technologies [:telemetry :optimization :dmn :bpmn]
  :itonami.blueprint/status :public-oss
- :itonami.blueprint/maturity :implemented}
+ :itonami.blueprint/maturity :blueprint}
