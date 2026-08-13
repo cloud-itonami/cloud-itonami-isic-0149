@@ -110,8 +110,24 @@
   `facility-not-registered` hard rule."
   "apiary-999")
 
+(def ^:private context-approver
+  "A named human sign-off authority, SUPPLIED to every run in the actor
+  context. Nothing in this repo reads it -- which is the point. Handing
+  the actor an approver and then measuring whether it survives into any
+  fact or record turns 'no approver appears on the page' from an absence
+  (which could just mean the scenario never provided one) into a
+  measured DROP. If a resume/approve path is ever added, the probe in
+  section 8 finds this exact value and the disclosure rewrites itself."
+  "sato-dvm-01")
+
 (def ^:private operator-context-base
-  {:actor-id "other-livestock-ops-01" :role :farm-operator})
+  {:actor-id "other-livestock-ops-01"
+   :role :farm-operator
+   ;; Inert for the Governor and the phase gate: `governor/check` takes
+   ;; the context as `_context`, and `phase/gate` is never given it. Only
+   ;; `operation/commit-fact` reads the context at all, and it reads
+   ;; `:actor-id`. Adding this key therefore cannot change a disposition.
+   :approver context-approver})
 
 (def ^:private scenario
   "Ordered scenario. Each entry is scenario INPUT (the operator request
@@ -331,6 +347,16 @@
     (set? x) (into #{} (mapcat deep-keys x))
     :else #{}))
 
+(defn- deep-values
+  "Every non-collection value appearing anywhere in `x`, at any depth.
+  Used to ask whether a value the caller HANDED the actor came back out
+  the other side, independent of what key it might have arrived under."
+  [x]
+  (cond
+    (map? x) (into #{} (mapcat deep-values (vals x)))
+    (coll? x) (into #{} (mapcat deep-values x))
+    :else #{x}))
+
 (defn- attribution-probe
   "MEASURES what this repo's Store, committed records and audit facts
   actually retain about WHO acted, instead of asserting a known scaffold
@@ -365,7 +391,19 @@
      :payload-nil-count (count (filter #(nil? (:payload %)) records))
      :store-reads (vec (sort (map name (keys (:sigs store/Store)))))
      :store-mutated? (not= before after)
-     :store-deep-approver-keys (present (deep-keys (map second after)))}))
+     :store-deep-approver-keys (present (deep-keys (map second after)))
+     ;; Was an approver SUPPLIED, and did the actor carry it through?
+     ;; Searched by VALUE across every fact, record and the post-run Store,
+     ;; so it is found even if a future implementation files it under a
+     ;; key this probe's candidate list never guessed.
+     :context-approver context-approver
+     :context-approver-supplied? (= context-approver
+                                    (:approver operator-context-base))
+     :context-approver-survived?
+     (contains? (into (deep-values (vec all-facts))
+                      (into (deep-values (vec records))
+                            (deep-values (mapv second after))))
+                context-approver)}))
 
 ;; --------------------------------------------------------------------
 ;; HTML
@@ -523,8 +561,18 @@
                          (span "warn" (code (kw derived))))
                        (cond
                          approver (esc approver)
-                         (empty? (:record-deep-approver-keys probe))
-                         (span "critical" "not recorded — no approver key on the fact")
+
+                         ;; An approver WAS handed to the actor in the
+                         ;; context and did not survive into the fact.
+                         ;; Derived from the probe, so this cell turns
+                         ;; into the approver's name by itself if the
+                         ;; actor is ever taught to retain it.
+                         (and (:context-approver-supplied? probe)
+                              (not (:context-approver-survived? probe)))
+                         (str (span "muted" (esc (:context-approver probe))) " "
+                              (span "critical"
+                                    "(audit only — not retained in record)"))
+
                          :else (dash))])))))
         runs))
 
@@ -585,7 +633,9 @@
 (defn- attribution-rows
   [{:keys [fact-types record-keys record-deep-keys record-deep-approver-keys
            store-reads store-mutated? records-returned record-effects
-           value=payload? payload-nil-count store-deep-approver-keys]}]
+           value=payload? payload-nil-count store-deep-approver-keys
+           context-approver context-approver-supplied?
+           context-approver-survived?] :as probe}]
   (into
    (mapv (fn [{:keys [t n keys actor? deep-approver-keys]}]
            (tr [(code (kw t))
@@ -625,7 +675,35 @@
          (span "muted" "n/a")
          (if (seq store-deep-approver-keys)
            (span "ok" (esc (str/join ", " (map kw store-deep-approver-keys))))
-           (span "critical" "none"))])]))
+           (span "critical" "none"))])
+    ;; The control row: an approver was HANDED to the actor. Searching for
+    ;; it by value (not by key) across every fact, record and the post-run
+    ;; Store separates "the scenario never named a human" from "the actor
+    ;; was told and dropped it".
+    (tr [(code ":approver supplied in the run context")
+         (num (count (filter identity [context-approver-supplied?])))
+         (if context-approver-supplied?
+           (str (span "ok" "supplied to all runs: ") (code context-approver))
+           (span "warn" "not supplied — the probe below proves nothing"))
+         (span "muted" "n/a")
+         (cond
+           (not context-approver-supplied?) (dash)
+           context-approver-survived?
+           (span "ok" "survived — found in the run output")
+           :else
+           (span "critical"
+                 (str "DROPPED — handed in, found in none of the "
+                      (reduce + (map :n fact-types))
+                      " emitted facts, none of the " records-returned
+                      " records, and nowhere in the Store")))])
+    (tr [(code "probe search method")
+         (num 2)
+         (esc (str "by key (" (count approver-key-candidates)
+                   " candidate approver key names) AND by value "
+                   "(deep scan for the supplied approver string)"))
+         (span "muted" "n/a")
+         (span "muted"
+               "a value scan cannot be defeated by an unguessed key name")])]))
 
 ;; ---- §9 closed op contract ------------------------------------------
 
@@ -657,7 +735,7 @@
                  (muted "not notifiable"))]))
         (sort-by key facts/health-concerns)))
 
-(defn- husbandry-line-rows [runs]
+(defn- husbandry-line-rows []
   (let [seeded (frequencies (keep (comp :husbandry-line second) facility-seed))]
     (mapv (fn [[id l]]
             (tr [(code id) (esc (:name l))
@@ -800,7 +878,14 @@
             (code (str/join ", " (map kw (:record-deep-approver-keys probe))))
             ". The disclosure below no longer applies and should be re-read against the code.")
        (str "<strong>no human approver is recorded anywhere</strong>, at any depth, on any fact or "
-            "record this run produced. The reason is structural rather than a dropped field: "
+            "record this run produced — and that is a measured drop, not merely an absence: every "
+            "run in this scenario was handed <code>:approver "
+            (esc (:context-approver probe))
+            "</code> in its context, and a deep scan by value finds it in "
+            (if (:context-approver-survived? probe)
+              "the run output."
+              "none of the emitted facts, none of the returned records, and nowhere in the Store. ")
+            "The reason is structural rather than a single dropped field: "
             "<code>otherlivestockops.store/Store</code> exposes "
             (num (count (:store-reads probe))) " read method"
             (when (not= 1 (count (:store-reads probe))) "s")
@@ -856,7 +941,7 @@
                   "resolve against. The rightmost column counts how many seeded holdings in this run are "
                   "registered under each line, so an unexercised line is visible as such.")
        :headers ["Line id" "Name" "Seeded holdings in this run"]
-       :rows (husbandry-line-rows runs)})
+       :rows (husbandry-line-rows)})
 
      "</main>\n"
      "<footer class=\"footer\">\n"
