@@ -635,7 +635,7 @@
            store-reads store-mutated? records-returned record-effects
            value=payload? payload-nil-count store-deep-approver-keys
            context-approver context-approver-supplied?
-           context-approver-survived?] :as probe}]
+           context-approver-survived?]}]
   (into
    (mapv (fn [{:keys [t n keys actor? deep-approver-keys]}]
            (tr [(code (kw t))
