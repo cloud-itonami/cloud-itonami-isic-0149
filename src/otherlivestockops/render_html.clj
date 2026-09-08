@@ -53,7 +53,7 @@
   alias's `:override-deps` for langchain/langgraph overrides nothing."
   (:refer-clojure :exclude [num])
   (:require [clojure.java.io :as io]
-            [clojure.string :as str]
+            [kotoba.lang.text :as str]
             [otherlivestockops.advisor :as advisor]
             [otherlivestockops.facts :as facts]
             [otherlivestockops.governor :as governor]
