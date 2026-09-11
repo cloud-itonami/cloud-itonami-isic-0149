@@ -29,7 +29,7 @@ independent `OtherLivestockFarmOperationsGovernor`
 (`otherlivestockops.governor`), composed by `otherlivestockops.operation`
 following the itonami actor pattern (ADR-2607011000):
 `advise -> govern -> phase-gate -> commit | escalate | hold`. 32 tests /
-103 assertions green (`clojure -M:test`).
+103 assertions green (`kbb -M:test`).
 
 `otherlivestockops.operation` is a synchronous stub of this flow (see its
 docstring) — production wiring into a `langgraph-clj` StateGraph with
@@ -144,7 +144,7 @@ Mirrors `cloud-itonami-isic-0145` (`swineops.*`) module-for-module:
 - `otherlivestockops.governor` — `OtherLivestockFarmOperationsGovernor`: hard invariants + escalation gates
 - `otherlivestockops.phase` — 0→3 rollout phase gate
 - `otherlivestockops.operation` — composes advisor → governor → phase into one operation run
-- `otherlivestockops.sim` — demo runner (`clojure -M:run`)
+- `otherlivestockops.sim` — demo runner (`kbb -M:run`)
 
 ## Capability layer
 
@@ -162,9 +162,9 @@ See [`docs/business-model.md`](docs/business-model.md) and
 ## Testing
 
 ```bash
-clojure -M:test   # 32 tests / 103 assertions
-clojure -M:lint   # clj-kondo, 0 errors / 0 warnings
-clojure -M:run    # demo runner
+kbb -M:test   # 32 tests / 103 assertions
+kbb -M:lint   # clj-kondo, 0 errors / 0 warnings
+kbb -M:run    # demo runner
 ```
 
 ## License
