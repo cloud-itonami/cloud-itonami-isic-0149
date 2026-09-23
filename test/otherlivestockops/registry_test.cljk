@@ -1,5 +1,5 @@
 (ns otherlivestockops.registry-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [kotoba.test :refer [deftest is testing]]
             [otherlivestockops.registry :as registry]))
 
 (deftest cost-exceeds-threshold-test
