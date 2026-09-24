@@ -52,7 +52,7 @@
   `:dev` is not needed: this repo's `:deps` is empty, so the `:dev`
   alias's `:override-deps` for langchain/langgraph overrides nothing."
   (:refer-clojure :exclude [num])
-  (:require [clojure.java.io :as io]
+  (:require [kotoba.io :as io]
             [kotoba.lang.text :as str]
             [otherlivestockops.advisor :as advisor]
             [otherlivestockops.facts :as facts]
