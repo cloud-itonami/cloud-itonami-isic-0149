@@ -1,0 +1,44 @@
+;; What this vertical's robot physically does, declared for
+;; kotoba.robotics.process (kotoba-lang/robotics). `kbb -M:dev:physics` runs it.
+;;
+;; README "Robotics premise": a facility-management robot keeps husbandry
+;; batch records, schedules feeding / breeding / harvest and handles supplies
+;; for a farm raising other animals (ISIC 0149, e.g. bees, rabbits, insects).
+;; Taking beekeeping as the worked example, its physical work at harvest:
+;; lifting full honey supers off the hive, carrying them to the honey house,
+;; and warming crystallised honey in its pail.
+;;
+;; Every number without a cited source is marked `estimate` in its :basis.
+;; Replacing an estimate with a sourced value is this bot's growth work.
+{:physics/schema "itonami.physical-ai.spec.v1"
+ :repo "cloud-itonami/cloud-itonami-isic-0149"
+ :cases
+ [{:id :honey-super-off-hive
+   :kind :manipulator
+   :procedure "arm lifts a full honey super off the top of the hive and sets it on the carrier"
+   :params {:l1-m 0.60 :l2-m 0.50 :m1-kg 7.0 :m2-kg 5.0
+            :from [0.60 0.30] :to [0.20 0.50] :duration-s 2.5 :steps 500}
+   :sweep {:param :payload-kg :values [10.0 15.0 20.0 25.0 30.0]}
+   :quantity :peak-tau1-nm
+   :limit {:max 250.0 :basis "estimate: continuous shoulder torque of a 20 kg-class industrial arm (a full super ~20-30 kg is also an estimate)"}
+   :boundary {:lo 1.0 :hi 80.0}}
+  {:id :supers-to-honey-house
+   :kind :transport
+   :procedure "carrier brings a stack of honey supers from the apiary across the meadow to the honey house"
+   :params {:mass-kg 150.0 :distance-m 300.0 :v-max-mps 1.5 :a-max-mps2 0.4
+            :brake-decel-mps2 0.8 :drive-force-n 600.0 :crr 0.08
+            :cog-height-m 0.70 :support-half-length-m 0.50 :max-time-s 3600.0}
+   :sweep {:param :payload-kg :values [50.0 100.0 200.0 300.0 400.0]}
+   :quantity :cycle-time-s
+   :limit {:max 220.0 :basis "estimate: supers reach the honey house before they cool, while the honey still extracts easily"}
+   :boundary {:lo 10.0 :hi 1000.0}}
+  {:id :honey-pail-decrystallising
+   :kind :thermal
+   :procedure "a 20-litre pail of crystallised honey stands in a warm-water bath for 12 hours; the honey at the pail wall is judged"
+   :params {:thickness-m 0.14 :conductivity-w-mk 0.50 :density-kg-m3 1420.0 :specific-heat-j-kgk 2300.0
+            :t0-c 18.0 :h-front-w-m2k 150.0 :t-back-ambient-c 18.0 :h-back-w-m2k 0.0
+            :threshold-c 45.0 :duration-s 43200.0 :nodes 11}
+   :sweep {:param :t-hot-c :values [35.0 40.0 45.0 50.0 55.0]}
+   :quantity :final-front-c
+   :limit {:max 45.0 :basis "estimate: honey kept below ~45 C to limit HMF formation and enzyme loss"}
+   :boundary {:lo 30.0 :hi 70.0}}]}
